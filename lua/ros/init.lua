@@ -100,12 +100,16 @@ end
 
 -- generic function to show Information in previewer
 -- @param opts for future use
--- @param command ros command to list
-local generic_info = function(opts, command)
+-- @param command ros command (e.g. topic, node, param)
+-- @param verb action to execute with command (e.g. list, info, show, echo)
+--
+-- TODO: generic for echo ?? or should I put it here?
+local generic_previwer = function(opts, command, verb)
 
     opts = opts or {}
     -- default get topic Information
     command = command or "topic"
+    verb = verb or "list"
 
     pickers.new(opts,{
         prompt_title = "search " .. command,
@@ -124,21 +128,41 @@ local generic_info = function(opts, command)
         previewer = previewers.new_buffer_previewer {
             title = "Information",
             define_preview = function(self, entry, status)
+
+                -- for some reason is require to trim the trailing spaces
+                -- otherwise it get splited on "args"
+                local current_selection = entry[1]:gsub("%s+", "")
                 local preview_bufnr = self.state.bufnr
-                -- local topic_name = entry[1]
                 Job:new({
                     command = "ros2",
-                    args = {command, "info", entry[1]},
+                    args = {command, verb, current_selection},
                     on_stdout = vim.schedule_wrap(
                         function(error, line, j_self)
-                            local result = j_self:result()
-                            vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, result)
+                            if vim.api.nvim_buf_is_valid(preview_bufnr) then
+                                vim.api.nvim_buf_set_lines(preview_bufnr, -1, -1, false, {line})
+                                -- continuously place cursor on last line to keep scrolling
+                                local linesCount = vim.api.nvim_buf_line_count(preview_bufnr)
+                                local winnr = vim.fn.bufwinnr(preview_bufnr)
+                                local winid = vim.fn.win_getid(winnr)
+                                if winid ~= 0 then
+                                    vim.api.nvim_win_set_cursor(winid, {linesCount, 0})
+                                end
+                            else
+                                j_self:_stop()
+                            end
+                            -- local result = j_self:result()
+                            -- vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, result)
+                        end
+                    ),
+                    on_stderr = vim.schedule_wrap(
+                        function (error, data, self)
+                            vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, {data})
                         end
                     ),
                     on_exit = vim.schedule_wrap(
                         function(j_self, _, _)
                             local result = j_self:result()
-                            vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, result)
+                            -- vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, result)
                         end
                     )
                 }):start()
@@ -148,11 +172,7 @@ local generic_info = function(opts, command)
 
 end
 
---[[
--- TODO create a generic previewer
---]]
-
-generic_info({}, "node")
+generic_previwer({}, "topic", "info")
 
 M.topic_info = function (opts)
     opts = opts or {}
