@@ -172,7 +172,7 @@ local generic_previwer = function(opts, command, verb)
 
 end
 
-generic_previwer({}, "topic", "info")
+generic_previwer({}, "interface", "show")
 
 M.topic_info = function (opts)
     opts = opts or {}
