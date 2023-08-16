@@ -9,7 +9,11 @@ local conf = require("telescope.config").values
 local actions = require "telescope.actions"
 local action_state = require "telescope.actions.state"
 
+local checks = require("ros.checks")
+
 local M = {}
+
+M._checks = checks;
 
 M.setup = function(opts)
     print("Options: ", opts)
@@ -125,54 +129,19 @@ local generic_previwer = function(opts, command, verb)
             end)
             return true
         end,
-        previewer = previewers.new_buffer_previewer {
+        previewer = previewers.new_termopen_previewer {
             title = "Information",
-            define_preview = function(self, entry, status)
-
-                -- for some reason is require to trim the trailing spaces
-                -- otherwise it get splited on "args"
+            get_command = function (entry, status)
                 local current_selection = entry[1]:gsub("%s+", "")
-                local preview_bufnr = self.state.bufnr
-                Job:new({
-                    command = "ros2",
-                    args = {command, verb, current_selection},
-                    on_stdout = vim.schedule_wrap(
-                        function(error, line, j_self)
-                            if vim.api.nvim_buf_is_valid(preview_bufnr) then
-                                vim.api.nvim_buf_set_lines(preview_bufnr, -1, -1, false, {line})
-                                -- continuously place cursor on last line to keep scrolling
-                                local linesCount = vim.api.nvim_buf_line_count(preview_bufnr)
-                                local winnr = vim.fn.bufwinnr(preview_bufnr)
-                                local winid = vim.fn.win_getid(winnr)
-                                if winid ~= 0 then
-                                    vim.api.nvim_win_set_cursor(winid, {linesCount, 0})
-                                end
-                            else
-                                j_self:_stop()
-                            end
-                            -- local result = j_self:result()
-                            -- vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, result)
-                        end
-                    ),
-                    on_stderr = vim.schedule_wrap(
-                        function (error, data, self)
-                            vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, {data})
-                        end
-                    ),
-                    on_exit = vim.schedule_wrap(
-                        function(j_self, _, _)
-                            local result = j_self:result()
-                            -- vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, result)
-                        end
-                    )
-                }):start()
-            end
+                -- TODO: FIX verb for a interface
+                return { 'ros2', command, "show", current_selection }
+            end,
         },
     }):find()
 
 end
 
-generic_previwer({}, "interface", "show")
+generic_previwer({}, "interface", "list")
 
 M.topic_info = function (opts)
     opts = opts or {}
@@ -231,5 +200,9 @@ M.topic_info = function (opts)
 end
 
 -- M.topic_info()
+
+M.interface_list = function ()
+    generic_previwer({}, "interface", "list")
+end
 
 return M
