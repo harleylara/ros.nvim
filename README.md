@@ -5,4 +5,6 @@
 
 ## API
 
-- `interface_list()`
+- `interface_show()` list interfaces and show information
+- `topic_info()` list topics and show verbose information
+- `topic_list()` list topics
