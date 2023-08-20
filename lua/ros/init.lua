@@ -66,8 +66,6 @@ end
 -- @param opts for future use
 -- @param command ros command (e.g. topic, node, param)
 -- @param verb action to execute with command (e.g. list, info, show, echo)
---
--- TODO: generic for echo ?? or should I put it here?
 local generic_previwer = function(opts, command, verb, args)
 
     opts = opts or {}
@@ -93,7 +91,6 @@ local generic_previwer = function(opts, command, verb, args)
             title = "Information",
             get_command = function (entry, status)
                 local current_selection = entry[1]:gsub("%s+", "")
-                -- TODO: FIX verb for a interface
                 return { 'ros2', command, verb, current_selection, args}
             end,
         },
@@ -112,6 +109,5 @@ end
 M.topic_info = function ()
     generic_previwer({}, "topic", "info", "-v")
 end
-
 
 return M
